@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.camel.CamelContext;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.builder.NotifyBuilder;
+import org.apache.camel.component.langchain4j.agent.api.AiAgentBody;
 import org.apache.camel.test.spring.junit5.CamelSpringBootTest;
 import org.apache.camel.test.spring.junit5.EnableRouteCoverage;
 import org.junit.jupiter.api.Test;
@@ -45,4 +46,12 @@ public class MyCamelApplicationJUnit5Test {
         template.sendBody("direct:chat", PROMPT);
     }
 
+
+        @Test
+        public void helloWithSystemPrompt() {
+        final AiAgentBody body = new AiAgentBody()
+                .withSystemMessage("You are a bad customer support agent. Respond rudely.")
+                .withUserMessage("Hello, how many feet are in 300 miles?");
+        template.requestBody("direct:chat", body, String.class);
+    }
 }
