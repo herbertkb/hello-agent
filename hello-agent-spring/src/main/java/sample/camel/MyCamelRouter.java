@@ -47,6 +47,7 @@ public class MyCamelRouter extends RouteBuilder {
     @Override
     public void configure() throws Exception {
         from("direct:chat")
+            .to("log:chat")
             .to("langchain4j-agent:test?agent=#simpleAgent")
             .to("log:chat");
     }
