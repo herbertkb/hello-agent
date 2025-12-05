@@ -1,5 +1,24 @@
 == Camel application - Spring Boot example
 
+=== Usage
+
+    # Build the image.
+    podman build --tag hello-agent-spring .
+
+    # Run it with default properties
+    podman run --publish 8080:8080 hello-agent-spring:latest
+
+    # Run it with ENV_VAR overriding the baseUrl
+    podman run --env APP_BASE_URL=http://example.com/goes/nowhere --publish 8080:8080 hello-agent-spring:latest
+
+    # Test the app:
+    curl --header "Content-Type: application/json" \
+    --request POST \
+    --data '{"userMessage":"Hello, who wrote Camel in Action?"}' \
+    http://localhost:8080/chat
+
+The sections below came with the example app I cloned this from.
+
 === Abstract
 
 This example shows how to work with a simple Apache Camel application using Spring Boot.
