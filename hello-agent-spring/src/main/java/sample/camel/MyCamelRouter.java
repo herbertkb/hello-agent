@@ -22,27 +22,14 @@ public class MyCamelRouter extends RouteBuilder {
     @Autowired
     CamelContext context;
 
-    @Value("${app.base.url}")
-    String baseUrl;
-    @Value("${app.api.key}")
-    String apiKey;
-    @Value("${app.model.name}")
-    String modelName;
-
     @PostConstruct
     void setup() {
         // demo model setup:
         // https://docs.langchain4j.dev/integrations/language-models/open-ai
-        // OpenAiChatModel model = OpenAiChatModel.builder()
-        // .baseUrl("http://langchain4j.dev/demo/openai/v1")
-        // .apiKey("demo")
-        // .modelName("gpt-4o-mini")
-        // .build();
-
         OpenAiChatModel model = OpenAiChatModel.builder()
-                .baseUrl(baseUrl)
-                .apiKey(apiKey)
-                .modelName(modelName)
+                .baseUrl("http://langchain4j.dev/demo/openai/v1")
+                .apiKey("demo")
+                .modelName("gpt-4o-mini")
                 .build();
 
         // Create agent configuration
@@ -60,23 +47,10 @@ public class MyCamelRouter extends RouteBuilder {
 
     @Override
     public void configure() throws Exception {
-        // @formatter:off
         from("direct:chat")
-            .to("log:chat")
-            .to("langchain4j-agent:test?agent=#simpleAgent")
-            .to("log:chat");
-
-        restConfiguration()
-            .bindingMode(RestBindingMode.json);
-
-        rest("/chat").description("Chat REST service")
-            .consumes("application/json")
-            .produces("application/json")
-
-            .post()
-                .type(AiAgentBody.class)
-                .to("direct:chat");
-        // @formatter:on
+                .to("log:chat")
+                .to("langchain4j-agent:test?agent=#simpleAgent")
+                .to("log:chat");
     }
 
 }
