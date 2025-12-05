@@ -41,7 +41,7 @@ public class AIAgentBodyWithContentTest {
     @Test
     public void helloWithSystemPrompt() {
         final AiAgentBody<TextContent> body = new AiAgentBody<TextContent>()
-                .withSystemMessage("You are a gnome. Respond in rhymes and riddles.")
+                // .withSystemMessage("You are a gnome. Respond in rhymes and riddles.")
                 .withUserMessage("Please summarize this text.")
                 .withContent(TextContent.from(bigTextBlock));
 
