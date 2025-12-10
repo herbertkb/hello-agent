@@ -48,6 +48,13 @@ public class HelloAgentRoute extends RouteBuilder {
         from("direct:chat")
             .to("langchain4j-agent:test?agent=#simpleAgent")
             .to("log:chat");
+
+        from("direct:adventure")
+            .to("log:adventure")
+            .to("langchain4j-agent:test?agent=#simpleAgent&tags=rooms")
+            .to("log:adventure");
+        from("langchain4j-tools:roomDB?tags=rooms&description=Query room database&parameter.name=string")
+            .setBody(constant("{\"name\": \"entrance\", \"features\": \"a door, flanked by statues, with exit leading north\"}"));
     }
     
 }
