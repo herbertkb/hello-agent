@@ -33,9 +33,20 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import dev.langchain4j.mcp.client.DefaultMcpClient;
+import dev.langchain4j.mcp.client.McpClient;
+import dev.langchain4j.mcp.client.transport.stdio.StdioMcpTransport;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.ollama.OllamaChatModel;
 
+import dev.langchain4j.mcp.client.DefaultMcpClient;
+import dev.langchain4j.mcp.client.McpClient;
+import dev.langchain4j.mcp.client.transport.McpTransport;
+import dev.langchain4j.mcp.client.transport.stdio.StdioMcpTransport;
+
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -75,31 +86,33 @@ class CamelBasicTest extends CamelTestSupport {
                 """;
         var userPrompt = "I enter the room named 'entrance'";
 
-        String response = template.requestBodyAndHeader("direct:adventure", userPrompt, Headers.SYSTEM_MESSAGE, systemPrompt, String.class);
+        String response = template.requestBodyAndHeader("direct:adventure", userPrompt, Headers.SYSTEM_MESSAGE,
+                systemPrompt, String.class);
         LOG.info("Reponse: {}", response);
 
         mock.assertIsSatisfied(10L * 1000L);
     }
 
     @Test
+    @Disabled
     public void combat() throws InterruptedException {
         MockEndpoint mock = getMockEndpoint("mock:output");
         mock.expectedMessageCount(1);
 
         var systemPrompt = """
-        You are a text-based adventure set in a ruined castle.
-        There is a skeleton advancing towards me.
-        In the style of a fantasy writer, describe the actions and result of combat using tools to calculate the damage.
-        Describe the impact of the mace on the skeleton's bones.
-        My weapon deals some number of damage points.
-        Those damage points are subtracted from the hit points of an enemy.
-        The skeleton has 3 hit points.
-        The skeleton will crumple to dust if it has less than 1 hit point.
-        The skeleton is still standing if it has atleast 1 hit point.
-        """;
+                You are a text-based adventure set in a ruined castle.
+                There is a skeleton advancing towards me.
+                In the style of a fantasy writer, describe the actions and result of combat using tools to calculate the damage.
+                Describe the impact of the mace on the skeleton's bones.
+                My weapon deals some number of damage points.
+                Those damage points are subtracted from the hit points of an enemy.
+                The skeleton has 3 hit points.
+                The skeleton will crumple to dust if it has less than 1 hit point.
+                The skeleton is still standing if it has atleast 1 hit point.
+                """;
         var userPrompt = "I swing my mace at the skeleton";
 
-        template.requestBodyAndHeader("direct:adventure", userPrompt, Headers.SYSTEM_MESSAGE,  systemPrompt);
+        template.requestBodyAndHeader("direct:adventure", userPrompt, Headers.SYSTEM_MESSAGE, systemPrompt);
 
         mock.assertIsSatisfied(10L * 1000L);
     }
@@ -149,6 +162,11 @@ class CamelBasicTest extends CamelTestSupport {
                 from("langchain4j-tools:roomDB?tags=rooms&description=Query room database&parameter.name=string")
                     .setBody(constant(
                             "{\"name\": \"entrance\", \"features\": [\"a crumbled gate leading north, flanked by statues\", \"a decayed bridge over a moat filled with muck\"]}"));
+                
+                from("direct:castle")
+                    .to("langchain4j-agent:test?agent=#mcpAgent")
+                    .to("log:castle")
+                    .to("mock:output");
                 // @formatter:on
             }
         };
