@@ -23,11 +23,15 @@ import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.langchain4j.agent.api.Agent;
 import org.apache.camel.component.langchain4j.agent.api.AgentConfiguration;
 import org.apache.camel.component.langchain4j.agent.api.AgentWithoutMemory;
+import org.apache.camel.component.langchain4j.agent.api.Headers;
+import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.impl.DefaultCamelContext;
 import org.apache.camel.spi.Registry;
 import org.apache.camel.test.junit5.CamelTestSupport;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.ollama.OllamaChatModel;
@@ -42,17 +46,38 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * A unit test checking that Camel can be launched in standalone mode.
  */
 class CamelBasicTest extends CamelTestSupport {
+    private final Logger LOG = LoggerFactory.getLogger(getClass());
 
     @Test
-    public void hello() {
+    public void hello() throws InterruptedException {
         final String PROMPT = "Hello Mr Agent.";
-        template.sendBody("direct:chat", PROMPT);
+
+        MockEndpoint mock = getMockEndpoint("mock:output");
+        mock.expectedMessageCount(1);
+
+        LOG.info("Prompt: {}", PROMPT);
+        String response = template.requestBody("direct:chat", PROMPT, String.class);
+        LOG.info("Reponse: {}", response);
+
+        mock.assertIsSatisfied(10L * 1000L);
     }
 
-    // @Override
-    // protected RoutesBuilder createRouteBuilder() {
-    // return createBasicRoute(new DefaultCamelContext());
-    // }
+    @Test
+    public void describeRooms() throws InterruptedException {
+        MockEndpoint mock = getMockEndpoint("mock:output");
+        mock.expectedMessageCount(1);
+
+        var systemPrompt = """
+                You are a text-based adventure set in a ruined castle.
+                In the style of a fantasy writer, lookup the features of a room by its name and return a lurid description.
+                """;
+        var userPrompt = "I enter the room named 'entrance'";
+
+        String response = template.requestBodyAndHeader("direct:adventure", userPrompt, Headers.SYSTEM_MESSAGE, systemPrompt, String.class);
+        LOG.info("Reponse: {}", response);
+
+        mock.assertIsSatisfied(10L * 1000L);
+    }
 
     @Override
     protected void bindToRegistry(Registry registry) throws Exception {
@@ -86,13 +111,14 @@ class CamelBasicTest extends CamelTestSupport {
                 // @formatter:off
                 from("direct:chat")
                     .to("langchain4j-agent:test?agent=#simpleAgent")
-                    .to("log:chat");
+                    .to("log:chat")
+                    .to("mock:output");
 
                 from("direct:adventure")
                     .to("log:adventure")
                     .to("langchain4j-agent:test?agent=#simpleAgent&tags=rooms")
-                    .to("log:adventure");
-
+                    .to("log:adventure")
+                    .to("mock:output");
                     
                 from("langchain4j-tools:roomDB?tags=rooms&description=Query room database&parameter.name=string")
                     .setBody(constant(
