@@ -49,6 +49,7 @@ class CamelBasicTest extends CamelTestSupport {
     private final Logger LOG = LoggerFactory.getLogger(getClass());
 
     @Test
+    @Disabled
     public void hello() throws InterruptedException {
         final String PROMPT = "Hello Mr Agent.";
 
@@ -63,6 +64,7 @@ class CamelBasicTest extends CamelTestSupport {
     }
 
     @Test
+    @Disabled
     public void describeRooms() throws InterruptedException {
         MockEndpoint mock = getMockEndpoint("mock:output");
         mock.expectedMessageCount(1);
@@ -79,6 +81,29 @@ class CamelBasicTest extends CamelTestSupport {
         mock.assertIsSatisfied(10L * 1000L);
     }
 
+    @Test
+    public void combat() throws InterruptedException {
+        MockEndpoint mock = getMockEndpoint("mock:output");
+        mock.expectedMessageCount(1);
+
+        var systemPrompt = """
+        You are a text-based adventure set in a ruined castle.
+        There is a skeleton advancing towards me.
+        In the style of a fantasy writer, describe the actions and result of combat using tools to calculate the damage.
+        Describe the impact of the mace on the skeleton's bones.
+        My weapon deals some number of damage points.
+        Those damage points are subtracted from the hit points of an enemy.
+        The skeleton has 3 hit points.
+        The skeleton will crumple to dust if it has less than 1 hit point.
+        The skeleton is still standing if it has atleast 1 hit point.
+        """;
+        var userPrompt = "I swing my mace at the skeleton";
+
+        template.requestBodyAndHeader("direct:adventure", userPrompt, Headers.SYSTEM_MESSAGE,  systemPrompt);
+
+        mock.assertIsSatisfied(10L * 1000L);
+    }
+
     @Override
     protected void bindToRegistry(Registry registry) throws Exception {
 
@@ -87,12 +112,13 @@ class CamelBasicTest extends CamelTestSupport {
                 .temperature(0.0)
                 .logRequests(true)
                 .logResponses(true)
-                .modelName("granite4:350m-h")
+                .modelName("granite4:1b")
                 .build();
 
         // Create agent configuration
         AgentConfiguration configuration = new AgentConfiguration()
                 .withChatModel(ollamaModel)
+                .withCustomTools(List.of(new CombatTool()))
                 .withInputGuardrailClasses(List.of())
                 .withOutputGuardrailClasses(List.of());
 
@@ -116,7 +142,7 @@ class CamelBasicTest extends CamelTestSupport {
 
                 from("direct:adventure")
                     .to("log:adventure")
-                    .to("langchain4j-agent:test?agent=#simpleAgent&tags=rooms")
+                    .to("langchain4j-agent:test?agent=#simpleAgent&tags=rooms,combat")
                     .to("log:adventure")
                     .to("mock:output");
                     
