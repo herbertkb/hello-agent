@@ -1,45 +1,54 @@
-== Camel Basic Example
+== Hello Agent (Camel Standalone)
 
-=== Introduction
+This is a playground project for experimenting with the Camel https://camel.apache.org/components/next/langchain4j-agent-component.html[langchain4j-agent] component.
 
-This is a very basic example that shows how to get started with Camel.
+It uses the latest version of Camel (4.17) to try out the latest features before they are available in 
+the runtime versions.  
 
-This example shows you that Camel can be used in standalone mode
-as a `_public static void main_` application.
+The experiments are written `CamelTestSupport` unit test classes.
+They are `@Disabled` by default so they don't hammer your LLM if you do a `mvn package`.
+I should port them to JBang before sharing them more broadly. 
 
-The example has only 1 java file in the link:../basic/src/main/java/org/apache/camel/example/basic/CamelBasic.java[`CamelBasic.java`] located in the src folder.
-There is code comments explaining in more details.
-
-=== Build
-
-You will need to compile this example first:
+These routes assume a LLM is running locally.
+You can run the `granite4:1b` model locally with an Ollama container with
 
 [source,sh]
 ----
-$ mvn compile
+podman exec -it ollama ollama run granite4:1b
 ----
 
-=== Run
+Or see the https://docs.ollama.com/[Ollama docs].
 
-To run the example type
+I also installed and ran it on Fedora with 
 
 [source,sh]
 ----
-$ mvn camel:run
+sudo dnf install ollama
+ollama run granite4:1b
 ----
 
-To stop the example hit `ctrl+c`
+I use `granite4:1b` because `granite4-tiny-h` freezes my laptop for 15 minutes on every request.
+`granite4:350m` runs quickly but inferences poorly.
+`granite4:1b` takes a few seconds per query but does a better job. 
 
-You can also run the example from your editor such as Eclipse, IDEA etc,
-by opening the class link:../basic/src/main/java/org/apache/camel/example/basic/CamelBasic.java[org.apache.camel.example.basic.CamelBasic.java]
-and then right click, and chose run java application.
+You can use the OpenAI model by adding its dependency
+[source,xml]
+----
+<dependency>
+    <groupId>dev.langchain4j</groupId>
+    <artifactId>langchain4j-ollama</artifactId>
+    <version>1.9.1</version>
+</dependency> 
+----
 
-=== Help and contributions
-
-If you hit any problem using Camel or have some feedback, then please
-https://camel.apache.org/community/support/[let us know].
-
-We also love contributors, so
-https://camel.apache.org/community/contributing/[get involved] :-)
-
-The Camel riders!
+And replacing the `ChatModel` class with
+[source,java]
+----
+// demo model
+//https://docs.langchain4j.dev/integrations/language-models/open-ai
+OpenAiChatModel openAiModel = OpenAiChatModel.builder()
+        .baseUrl("http://langchain4j.dev/demo/openai/v1")
+        .apiKey("demo")
+        .modelName("gpt-4o-mini")
+        .build();
+----
