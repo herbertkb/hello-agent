@@ -19,8 +19,8 @@ package org.apache.camel.example.basic;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.langchain4j.agent.api.Agent;
 import org.apache.camel.component.langchain4j.agent.api.AgentConfiguration;
-import org.apache.camel.component.langchain4j.agent.api.AgentWithoutMemory;
-import org.apache.camel.component.langchain4j.agent.api.Headers;
+import org.apache.camel.component.langchain4j.agent.api.AgentWithMemory;
+import org.apache.camel.component.langchain4j.agent.api.AiAgentBody;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.spi.Registry;
 import org.apache.camel.test.junit5.CamelTestSupport;
@@ -29,56 +29,28 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import dev.langchain4j.memory.chat.ChatMemoryProvider;
+import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.ollama.OllamaChatModel;
-
+import dev.langchain4j.store.memory.chat.ChatMemoryStore;
+import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 import java.util.List;
+import java.util.Map;
+import static org.apache.camel.component.langchain4j.agent.api.Headers.SYSTEM_MESSAGE;
+import static org.apache.camel.component.langchain4j.agent.api.Headers.MEMORY_ID;
 
 /**
  * A unit test checking that Camel can be launched in standalone mode.
  */
-class CamelBasicTest extends CamelTestSupport {
+class CombatMemoryTest extends CamelTestSupport {
     private final Logger LOG = LoggerFactory.getLogger(getClass());
-
-    @Test
-    @Disabled
-    public void hello() throws InterruptedException {
-        final String PROMPT = "Hello Mr Agent.";
-
-        MockEndpoint mock = getMockEndpoint("mock:output");
-        mock.expectedMessageCount(1);
-
-        LOG.info("Prompt: {}", PROMPT);
-        String response = template.requestBody("direct:chat", PROMPT, String.class);
-        LOG.info("Reponse: {}", response);
-
-        mock.assertIsSatisfied(10L * 1000L);
-    }
-
-    @Test
-    @Disabled
-    public void describeRooms() throws InterruptedException {
-        MockEndpoint mock = getMockEndpoint("mock:output");
-        mock.expectedMessageCount(1);
-
-        var systemPrompt = """
-                You are a text-based adventure set in a ruined castle.
-                In the style of a fantasy writer, lookup the features of a room by its name and return a lurid description.
-                """;
-        var userPrompt = "I enter the room named 'entrance'";
-
-        String response = template.requestBodyAndHeader("direct:adventure", userPrompt, Headers.SYSTEM_MESSAGE,
-                systemPrompt, String.class);
-        LOG.info("Reponse: {}", response);
-
-        mock.assertIsSatisfied(10L * 1000L);
-    }
 
     @Test
     @Disabled
     public void combat() throws InterruptedException {
         MockEndpoint mock = getMockEndpoint("mock:output");
-        mock.expectedMessageCount(1);
+        mock.expectedMessageCount(2);
 
         var systemPrompt = """
                 You are a text-based adventure set in a ruined castle.
@@ -87,13 +59,32 @@ class CamelBasicTest extends CamelTestSupport {
                 Describe the impact of the mace on the skeleton's bones.
                 My weapon deals some number of damage points.
                 Those damage points are subtracted from the hit points of an enemy.
-                The skeleton has 3 hit points.
+                The skeleton has 10 hit points.
                 The skeleton will crumple to dust if it has less than 1 hit point.
                 The skeleton is still standing if it has atleast 1 hit point.
                 """;
         var userPrompt = "I swing my mace at the skeleton";
+        var memoryId = "session_02";
+        AiAgentBody agentBody = new AiAgentBody(userPrompt, systemPrompt, memoryId);
 
-        template.requestBodyAndHeader("direct:adventure", userPrompt, Headers.SYSTEM_MESSAGE, systemPrompt);
+        String response1 = template.requestBody("direct:combat", agentBody, String.class);
+        LOG.info("Round 1:: {}", response1);
+
+        String response2 = template.requestBodyAndHeaders("direct:combat", 
+                "I swing my mace again at the skeleton.", 
+                Map.of(SYSTEM_MESSAGE, """
+                You are a text-based adventure set in a ruined castle.
+                The skeleton is still standing before me.
+                In the style of a fantasy writer, describe the actions and result of combat using tools to calculate the damage.
+                Describe the impact of the mace on the skeleton's bones.
+                My weapon deals some number of damage points.
+                Those damage points are subtracted from the hit points of an enemy.
+                The skeleton will crumple to dust if it has less than 1 hit point.
+                The skeleton is still standing if it has atleast 1 hit point.
+                        """,
+                    MEMORY_ID, memoryId),
+                String.class);
+        LOG.info("Round 2:: {}", response2);
 
         mock.assertIsSatisfied(10L * 1000L);
     }
@@ -109,18 +100,28 @@ class CamelBasicTest extends CamelTestSupport {
                 .modelName("granite4:1b")
                 .build();
 
+        ChatMemoryStore store = new InMemoryChatMemoryStore();
+
+        // Example of creating a Chat Memory Provider : Create a message window memory that keeps the last 10 messages
+        ChatMemoryProvider chatMemoryProvider = memoryId -> MessageWindowChatMemory.builder()
+                .id(memoryId)
+                .maxMessages(10)
+                .chatMemoryStore(store) // the Chat Memory store is previously created
+                .build();
+
         // Create agent configuration
         AgentConfiguration configuration = new AgentConfiguration()
                 .withChatModel(ollamaModel)
+                .withChatMemoryProvider(chatMemoryProvider)
                 .withCustomTools(List.of(new CombatTool()))
                 .withInputGuardrailClasses(List.of())
                 .withOutputGuardrailClasses(List.of());
 
         // Create the agent
-        Agent simpleAgent = new AgentWithoutMemory(configuration);
+        Agent memoryAgent = new AgentWithMemory(configuration);
 
         // Register the agent in the Camel context
-        registry.bind("simpleAgent", simpleAgent);
+        registry.bind("memoryAgent", memoryAgent);
     }
 
     @Override
@@ -129,21 +130,11 @@ class CamelBasicTest extends CamelTestSupport {
             @Override
             public void configure() {
                 // @formatter:off
-                from("direct:chat")
-                    .to("langchain4j-agent:test?agent=#simpleAgent")
-                    .to("log:chat")
+                from("direct:combat")
+                    .to("log:combat")
+                    .to("langchain4j-agent:test?agent=#memoryAgent")
+                    .to("log:combat")
                     .to("mock:output");
-
-                from("direct:adventure")
-                    .to("log:adventure")
-                    .to("langchain4j-agent:test?agent=#simpleAgent&tags=rooms,combat")
-                    .to("log:adventure")
-                    .to("mock:output");
-                    
-                from("langchain4j-tools:roomDB?tags=rooms&description=Query room database&parameter.name=string")
-                    .setBody(constant(
-                            "{\"name\": \"entrance\", \"features\": [\"a crumbled gate leading north, flanked by statues\", \"a decayed bridge over a moat filled with muck\"]}"));
-
                 // @formatter:on
             }
         };

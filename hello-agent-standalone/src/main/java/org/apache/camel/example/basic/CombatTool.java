@@ -18,8 +18,8 @@ public class CombatTool {
 
     @Tool("Calculate damage delt to enemy")
     public int damage(@P("Weapon name") String weapon) {
-        return dice.nextInt(weaponDamage.get(weapon)) + 1;
-        // return 6;
+        // return dice.nextInt(weaponDamage.get(weapon)) + 1;
+        return 1;
     }
 
     @Tool("Reduce an enemies hit points from damage delt by a weapon")

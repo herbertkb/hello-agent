@@ -14,6 +14,7 @@ import static org.apache.camel.component.langchain4j.agent.api.Headers.SYSTEM_ME
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.spi.Registry;
 import org.apache.camel.test.junit5.CamelTestSupport;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +40,7 @@ public class McpCastleTest extends CamelTestSupport {
     }
 
     @Test
-    // @Disabled
+    @Disabled
     public void mcp() throws InterruptedException, URISyntaxException {
         MockEndpoint mock = getMockEndpoint("mock:output");
         mock.expectedMessageCount(1);

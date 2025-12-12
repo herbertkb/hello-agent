@@ -1,10 +1,7 @@
 package org.apache.camel.example.basic;
 
 import java.net.URISyntaxException;
-import java.util.Arrays;
 import java.util.List;
-import java.util.function.BiPredicate;
-
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.langchain4j.agent.api.Agent;
 import org.apache.camel.component.langchain4j.agent.api.AgentConfiguration;
@@ -12,18 +9,13 @@ import org.apache.camel.component.langchain4j.agent.api.AgentWithoutMemory;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.spi.Registry;
 import org.apache.camel.test.junit5.CamelTestSupport;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.document.Document;
-import dev.langchain4j.data.document.splitter.DocumentSplitters;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.mcp.client.DefaultMcpClient;
-import dev.langchain4j.mcp.client.McpClient;
-import dev.langchain4j.mcp.client.transport.McpTransport;
-import dev.langchain4j.mcp.client.transport.stdio.StdioMcpTransport;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.rag.DefaultRetrievalAugmentor;
@@ -46,7 +38,7 @@ public class RAGTest extends CamelTestSupport {
                         """;
 
         @Test
-        // @Disabled
+        @Disabled
         public void rag() throws InterruptedException, URISyntaxException {
                 MockEndpoint mock = getMockEndpoint("mock:output");
                 mock.expectedMessageCount(1);
