@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import dev.langchain4j.guardrail.InputGuardrailException;
+import dev.langchain4j.guardrail.OutputGuardrailException;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.ollama.OllamaChatModel;
 
@@ -31,6 +32,7 @@ class GuardrailTest extends CamelTestSupport {
         MockEndpoint mock = getMockEndpoint("mock:output");
         mock.expectedMessageCount(0);
 
+        // Asking about the 'Red King' is forbidden.
         final String PROMPT = "Tell me about the Red King.";
 
         CamelExecutionException ex = assertThrows(CamelExecutionException.class, () ->
@@ -38,6 +40,23 @@ class GuardrailTest extends CamelTestSupport {
         );
 
         assertTrue( ex.getCause().getClass().equals(InputGuardrailException.class) );
+
+        mock.assertIsSatisfied(10L * 1000L);
+    }
+
+    @Test
+    // @Disabled
+    public void rejectedOutput() throws InterruptedException {
+        MockEndpoint mock = getMockEndpoint("mock:output");
+        mock.expectedMessageCount(0);
+
+        final String PROMPT = "Who is Robert E Howard's most famous character?";
+
+        CamelExecutionException ex = assertThrows(CamelExecutionException.class, () ->
+            template.sendBody("direct:chat", PROMPT)
+        );
+
+        assertTrue( ex.getCause().getClass().equals(OutputGuardrailException.class) );
 
         mock.assertIsSatisfied(10L * 1000L);
     }
@@ -57,7 +76,7 @@ class GuardrailTest extends CamelTestSupport {
         AgentConfiguration configuration = new AgentConfiguration()
                 .withChatModel(ollamaModel)
                 .withInputGuardrailClasses(List.of(DoNotAskAboutTheRedKingInputGuardrail.class))
-                .withOutputGuardrailClasses(List.of());
+                .withOutputGuardrailClasses(List.of(DoNotRespondWithConanOutputGuardrail.class));
 
         // Create the agent
         Agent simpleAgent = new AgentWithoutMemory(configuration);

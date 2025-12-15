@@ -14,6 +14,7 @@ You can run the `granite4:1b` model locally with an Ollama container with
 
 [source,sh]
 ----
+podman run -d -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
 podman exec -it ollama ollama run granite4:1b
 ----
 

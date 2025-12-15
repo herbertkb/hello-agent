@@ -7,7 +7,7 @@ import dev.langchain4j.guardrail.InputGuardrailResult;
 public class DoNotAskAboutTheRedKingInputGuardrail implements InputGuardrail {
     @Override
     public InputGuardrailResult validate(UserMessage request) {
-        if (request.singleText().contains("Red King")) {
+        if (request.singleText().toLowerCase().contains("red king")) {
             return failure("Mentions the Red King, who must not be mentioned.");
         }
         return success();
