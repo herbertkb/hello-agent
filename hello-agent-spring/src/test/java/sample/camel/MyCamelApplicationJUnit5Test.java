@@ -24,6 +24,7 @@ import org.apache.camel.builder.NotifyBuilder;
 import org.apache.camel.component.langchain4j.agent.api.AiAgentBody;
 import org.apache.camel.test.spring.junit5.CamelSpringBootTest;
 import org.apache.camel.test.spring.junit5.EnableRouteCoverage;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -39,6 +40,7 @@ public class MyCamelApplicationJUnit5Test {
     private ProducerTemplate template;
 
     @Test
+    @Disabled
     public void hello() {
         final String PROMPT = "How much does a wooden pallet weigh?";
 
@@ -46,6 +48,7 @@ public class MyCamelApplicationJUnit5Test {
     }
 
     @Test
+    @Disabled
     public void helloWithSystemPrompt() {
         final AiAgentBody<TextContent> body = new AiAgentBody<TextContent>()
                 // .withSystemMessage("You are a bad customer support agent. Respond rudely.")

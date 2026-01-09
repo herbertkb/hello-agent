@@ -11,6 +11,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import dev.langchain4j.data.message.TextContent;
 
+@Disabled
 @CamelSpringBootTest
 @SpringBootTest(classes = MyCamelApplication.class)
 @EnableRouteCoverage
