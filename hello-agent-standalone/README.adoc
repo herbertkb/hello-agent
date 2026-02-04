@@ -25,6 +25,7 @@ I also installed and ran it on Fedora with
 [source,sh]
 ----
 sudo dnf install ollama
+ollama serve
 ollama run granite4:1b
 ----
 

@@ -26,93 +26,93 @@ import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import static org.apache.camel.component.langchain4j.agent.api.Headers.SYSTEM_MESSAGE;
 
 public class RAGTest extends CamelTestSupport {
-        private final Logger LOG = LoggerFactory.getLogger(getClass());
+    private final Logger LOG = LoggerFactory.getLogger(getClass());
 
-        final String KNOWLEDGE_BASE = """
-                        CHARACTER SHEET
-                        Name: Jimbo Swordman
-                        Class: Barbarian
-                        Species: Human
-                        Strength: 18
-                        Wisdom: 6
-                        """;
+    final String KNOWLEDGE_BASE = """
+            CHARACTER SHEET
+            Name: Jimbo Swordman
+            Class: Barbarian
+            Species: Human
+            Strength: 18
+            Wisdom: 6
+            """;
 
-        @Test
-        @Disabled
-        public void rag() throws InterruptedException, URISyntaxException {
-                MockEndpoint mock = getMockEndpoint("mock:output");
-                mock.expectedMessageCount(1);
+    @Test
+    // @Disabled
+    public void rag() throws InterruptedException, URISyntaxException {
+        MockEndpoint mock = getMockEndpoint("mock:output");
+        mock.expectedMessageCount(1);
 
-                var systemPrompt = "You are reading the character sheet for the user.";
-                // var userPrompt = "What is my character's name, class, and strength?";
-                var userPrompt = "Vividly describe my character from the information in his sheet.";
+        var systemPrompt = "You are reading the character sheet for the user.";
+        // var userPrompt = "What is my character's name, class, and strength?";
+        var userPrompt = "Vividly describe my character from the information in his sheet.";
 
-                String response = template.requestBodyAndHeader("direct:agent-with-rag", userPrompt, SYSTEM_MESSAGE,
-                                systemPrompt,
-                                String.class);
-                LOG.info("Response: {}", response);
+        String response = template.requestBodyAndHeader("direct:agent-with-rag", userPrompt, SYSTEM_MESSAGE,
+                systemPrompt,
+                String.class);
+        LOG.info("Response: {}", response);
 
-                mock.assertIsSatisfied(10L * 1000L);
-        }
+        mock.assertIsSatisfied(10L * 1000L);
+    }
 
-        @Override
-        protected void bindToRegistry(Registry registry) throws Exception {
+    @Override
+    protected void bindToRegistry(Registry registry) throws Exception {
 
-                // Register the agent in the Camel context
-                ChatModel chatModel = OllamaChatModel.builder()
-                                .baseUrl("http://localhost:11434")
-                                .temperature(0.0)
-                                .logRequests(true)
-                                .logResponses(true)
-                                .modelName("granite4:1b")
-                                .build();
+        // Register the agent in the Camel context
+        ChatModel chatModel = OllamaChatModel.builder()
+                .baseUrl("http://localhost:11434")
+                .temperature(0.0)
+                .logRequests(true)
+                .logResponses(true)
+                .modelName("granite4:1b")
+                .build();
 
-                // // Create document from knowledge base
-                Document document = Document.from(KNOWLEDGE_BASE);
+        // // Create document from knowledge base
+        Document document = Document.from(KNOWLEDGE_BASE);
 
-                // // Split into chunks
-                // List<TextSegment> segments = DocumentSplitters.recursive(300,
-                // 100).split(document);
-                InMemoryEmbeddingStore<TextSegment> embeddingStore = new InMemoryEmbeddingStore<>();
-                EmbeddingStoreIngestor.ingest(List.of(document), embeddingStore);
+        // // Split into chunks
+        // List<TextSegment> segments = DocumentSplitters.recursive(300,
+        // 100).split(document);
+        InMemoryEmbeddingStore<TextSegment> embeddingStore = new InMemoryEmbeddingStore<>();
+        EmbeddingStoreIngestor.ingest(List.of(document), embeddingStore);
 
-                // Create content retriever
-                EmbeddingStoreContentRetriever contentRetriever = EmbeddingStoreContentRetriever.builder()
-                                .embeddingStore(embeddingStore)
-                                // .embeddingModel(embeddingModel)
-                                .maxResults(3)
-                                .minScore(0.6)
-                                .build();
+        // Create content retriever
+        EmbeddingStoreContentRetriever contentRetriever = EmbeddingStoreContentRetriever.builder()
+                .embeddingStore(embeddingStore)
+                // .embeddingModel(embeddingModel)
+                .maxResults(3)
+                .minScore(0.6)
+                .build();
 
-                // Create a RetrievalAugmentor that uses only a content retriever : naive rag
-                // scenario
-                RetrievalAugmentor retrievalAugmentor = DefaultRetrievalAugmentor.builder()
-                                .contentRetriever(contentRetriever)
-                                .build();
+        // Create a RetrievalAugmentor that uses only a content retriever : naive rag
+        // scenario
+        RetrievalAugmentor retrievalAugmentor = DefaultRetrievalAugmentor.builder()
+                .contentRetriever(contentRetriever)
+                .build();
 
-                // Create agent configuration with RAG support
-                AgentConfiguration configuration = new AgentConfiguration()
-                                .withChatModel(chatModel)
-                                .withRetrievalAugmentor(retrievalAugmentor)
-                                .withInputGuardrailClasses(List.of())
-                                .withOutputGuardrailClasses(List.of());
+        // Create agent configuration with RAG support
+        AgentConfiguration configuration = new AgentConfiguration()
+                .withChatModel(chatModel)
+                .withRetrievalAugmentor(retrievalAugmentor)
+                .withInputGuardrailClasses(List.of())
+                .withOutputGuardrailClasses(List.of());
 
-                Agent agentWithRag = new AgentWithoutMemory(configuration);
+        Agent agentWithRag = new AgentWithoutMemory(configuration);
 
-                // Register agent in the context
-                this.context.getRegistry().bind("agentWithRag", agentWithRag);
-        }
+        // Register agent in the context
+        this.context.getRegistry().bind("agentWithRag", agentWithRag);
+    }
 
-        @Override
-        protected RouteBuilder createRouteBuilder() {
-                return new RouteBuilder() {
-                        public void configure() {
-                                from("direct:agent-with-rag")
-                                                .to("log:rag")
-                                                .to("langchain4j-agent:test-rag-agent?agent=#agentWithRag")
-                                                .to("log:rag")
-                                                .to("mock:output");
-                        }
-                };
-        }
+    @Override
+    protected RouteBuilder createRouteBuilder() {
+        return new RouteBuilder() {
+            public void configure() {
+                from("direct:agent-with-rag")
+                        .to("log:rag")
+                        .to("langchain4j-agent:test-rag-agent?agent=#agentWithRag")
+                        .to("log:rag")
+                        .to("mock:output");
+            }
+        };
+    }
 }

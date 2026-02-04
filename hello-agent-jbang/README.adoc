@@ -1,0 +1,1 @@
+jbang app install --force --fresh -Dcamel.jbang.version=4.17.0  camel@apache/camel

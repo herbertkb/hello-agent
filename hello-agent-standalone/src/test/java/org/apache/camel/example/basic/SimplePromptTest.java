@@ -37,7 +37,7 @@ import java.util.List;
 /**
  * A unit test checking that Camel can be launched in standalone mode.
  */
-class CamelBasicTest extends CamelTestSupport {
+class SimplePromptTest extends CamelTestSupport {
     private final Logger LOG = LoggerFactory.getLogger(getClass());
 
     @Test
@@ -139,7 +139,8 @@ class CamelBasicTest extends CamelTestSupport {
                     .to("langchain4j-agent:test?agent=#simpleAgent&tags=rooms,combat")
                     .to("log:adventure")
                     .to("mock:output");
-                    
+                
+                // TODO: make this more explicit for calling a database
                 from("langchain4j-tools:roomDB?tags=rooms&description=Query room database&parameter.name=string")
                     .setBody(constant(
                             "{\"name\": \"entrance\", \"features\": [\"a crumbled gate leading north, flanked by statues\", \"a decayed bridge over a moat filled with muck\"]}"));
